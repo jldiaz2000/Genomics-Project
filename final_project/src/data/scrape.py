@@ -20,7 +20,16 @@ def download_file(curr_folder, curr_url):
 
     # path = f'/Users/Jacob_Diaz/Desktop/Cornell/Fall 2022/CS 4775/final-project/data/raw/{curr_folder}'
     path = Path(os.getcwd())
-    path = f'{str(path.parent.parent)}/data/raw/{curr_folder}'
+    path = f'{str(path.parent.parent)}/data'
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    path = f'{path}/raw'
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    path = f'{path}/{curr_folder}'
+
 
     if not os.path.exists(path):
         os.mkdir(path)
