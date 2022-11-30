@@ -10,7 +10,10 @@ if __name__ == '__main__':
 
     dict_lst = []
 
-    with open('summary.txt') as f:
+    path = Path(os.getcwd())
+    path = f'{str(path.parent.parent)}'
+
+    with open(f'{path}/summary.txt') as f:
         for line in f.readlines():
             curr_line = line
             curr_line = curr_line.replace('.narrowPeak.gz', ';')
