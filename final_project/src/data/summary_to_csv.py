@@ -1,15 +1,12 @@
 import pandas as pd
 import json
 import os
+from pathlib import Path
 
-# gets summary of all train/test datasets
+# gets summary of all raw datasets
 
 
 if __name__ == '__main__':
-
-    removable = ['project=', 'lab=', 'composite=', 'dataType=', 'view=', 'cell=',
-                 'treatment=', 'antibody=', 'control=', 'dataVersion=', 'dccAccession=',
-                 'controlId=', 'quality=', 'tableName=', 'type=', 'md5sum=', 'size=']
 
     dict_lst = []
 
@@ -26,7 +23,11 @@ if __name__ == '__main__':
             curr_line_dict = json.loads(curr_line)
             dict_lst.append(curr_line_dict)
 
-    # path = f'{os.getcwd()}/data'
-    path = '/Users/Jacob_Diaz/Desktop/Cornell/Fall 2022/CS 4775/final-project/data'
+    # path = '/Users/Jacob_Diaz/Desktop/Cornell/Fall 2022/CS 4775/final-project/data'
+    path = Path(os.getcwd())
+    path = f'{str(path.parent.parent)}/data/'
+    if not os.path.exists(path):
+        os.mkdir(path)
+
     df = pd.DataFrame.from_dict(dict_lst)
     csv = df.to_csv(f'{path}/summary.csv')

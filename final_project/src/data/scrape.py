@@ -3,6 +3,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import os
+from pathlib import Path
 
 
 # scrapes dataset from url below
@@ -17,7 +18,9 @@ def download_file(curr_folder, curr_url):
     train_url = f'{curr_url}train.data'
     test_url = f'{curr_url}test.data'
 
-    path = f'/Users/Jacob_Diaz/Desktop/Cornell/Fall 2022/CS 4775/final-project/data/raw/{curr_folder}'
+    # path = f'/Users/Jacob_Diaz/Desktop/Cornell/Fall 2022/CS 4775/final-project/data/raw/{curr_folder}'
+    path = Path(os.getcwd())
+    path = f'{str(path.parent.parent)}/data/raw/{curr_folder}'
 
     if not os.path.exists(path):
         os.mkdir(path)
