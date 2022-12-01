@@ -3,6 +3,7 @@ import pickle
 from pathlib import Path
 import linecache
 import re
+import itertools
 
 
 # pickles dictionaries:

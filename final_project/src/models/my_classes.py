@@ -14,7 +14,7 @@ print("Fetching Data")
 PATH = Path(os.getcwd())
 PATH = PATH.parent.parent
 folder_to_keys = pickle.load(open(f'{PATH}/data/folder_to_keys.pickle', 'rb'))
-
+ 
 class DNADataset(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
 
@@ -276,12 +276,24 @@ class Trainer():
         ## TODO: Create function to generate AUC_ROC curve
         pass
 
+def get_num_train_test(folders_using: list):
+    train_count = 0
+    test_count = 0
+    for folder in folders_using:
+        train_count += len(folder_to_keys[folder]['train'])
+        test_count += len(folder_to_keys[folder]['test'])
+        
+    print(f"Number of train:  {train_count}")
+    print(f"Number of test:  {test_count}")
+
+
 
 def main(device):
 
     folders = list(folder_to_keys.keys())
-    folders_using = folders[0:1]
+    folders_using = folders[1:2]
     print(folders_using)
+    get_num_train_test(folders_using)
 
     ################## Training Generator ##################
     train_set_lst = []
@@ -306,7 +318,7 @@ def main(device):
     ce_loss = torch.nn.BCELoss( reduction = 'mean' )
     save_interval = 0
 
-    trainer = Trainer(paper_model, adam_optimizer, ce_loss, device, save_interval, training_generator, test_generator)
+    trainer = Trainer(paper_model, adam_optimizer, ce_loss, device, save_interval, training_generator) #, test_generator)
 
     # assert False
     s = datetime.now()
@@ -321,3 +333,6 @@ if __name__ == "__main__":
     import sys
     device = 0
     main(device)
+
+
+
