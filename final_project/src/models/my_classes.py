@@ -8,6 +8,7 @@ import re
 import os
 from pathlib import Path
 import time
+from datetime import datetime, timedelta
 
 print("Fetching Data")
 PATH = Path(os.getcwd())
@@ -212,7 +213,7 @@ class Trainer():
 
     def _run_epoch(self, epoch):
         ## TODO: Switch prints with tqdm prints 
-        print(f'[GPU {self.gpu_id}] Epoch {epoch}')
+        print(f'\t[GPU {self.gpu_id}] Epoch {epoch}')
         for batch_data, batch_labels in self.train_data:
             ## TODO: make getting reformatted kmer tensor more efficent
             batch_tensor = DNADataset.get_tensor(batch_data, self.model.kmer_to_idx, self.model.k)
@@ -224,7 +225,7 @@ class Trainer():
     def _save_checkpoint(self, epoch: int):
         checkpoint = self.model.state_dict()
         torch.save(checkpoint, 'checkpoint_model.pt')
-        print(f'Model Saved at Epoch {epoch}')
+        print(f'\tModel Saved at Epoch {epoch}')
 
     def train(self, num_epochs: int):
         for epoch in range(1,num_epochs + 1):
@@ -260,8 +261,8 @@ class Trainer():
 
             loss = cumulative_loss/num_batches
             accuracy = num_correct/total
-            print(f'Loss: {loss} = {cumulative_loss}/{num_batches}')
-            print(f'Accuracy: {accuracy} = {num_correct}/{total}')
+            print(f'\tLoss: {loss} = {cumulative_loss}/{num_batches}')
+            print(f'\tAccuracy: {accuracy} = {num_correct}/{total}')
             print()
 
         self.model.train()
@@ -308,12 +309,13 @@ def main(device):
     trainer = Trainer(paper_model, adam_optimizer, ce_loss, device, save_interval, training_generator, test_generator)
 
     # assert False
-    start_time = time.time()
+    s = datetime.now()
     print('Starting Training')
     num_epochs = 1
-    trainer.train(1)
+    trainer.train(num_epochs)
     print('Finished Training')
-    print(f'Time to run {num_epochs} epochs: {time.time() - start_time}')
+    f = datetime.now()
+    print(f'Time to run {num_epochs} epochs: {f-s} (HH:MM:SS)')
 
 if __name__ == "__main__":
     import sys
