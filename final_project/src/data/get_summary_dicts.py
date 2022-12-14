@@ -8,12 +8,9 @@ import itertools
 
 # pickles dictionaries:
 #   - folder_to_keys: maps data set folder to a set of sequence keys
-#   - keys_to_folder: maps sequence keys to a data set folder
-#   - keys_to_label: maps a sequence key to a label
+#   - folder_key_to_label: maps a folder + keys to a label
 
 if __name__ == '__main__':
-    # PATH = '/Users/Jacob_Diaz/Desktop/Cornell/Fall 2022/CS 4775/final-project/data/interm'
-    # PATH = '/Users/Jacob_Diaz/Desktop/Cornell/Fall 2022/CS 4775/final-project/data/raw'
 
     PATH = Path(os.getcwd())
     PATH = f'{str(PATH.parent.parent)}/data'
@@ -26,18 +23,25 @@ if __name__ == '__main__':
     folder_to_keys = {folder: {'train': set(), 'test': set()}
                       for folder in data_sets}
 
-    i = 1
+    folder_key_to_label = {folder: {'train': dict(), 'test': dict()}
+                           for folder in data_sets}
+
+    # i = 1
     for data_set in data_sets:
-        print(i)
-        i += 1
+        # print(i)
+        # i += 1
         train_lines = open(f'{PATH}/raw/{data_set}/train.txt').readlines()
         for line in train_lines:
             result = re.search('(.*) (\w+) (\d+)', line)
             folder_to_keys[data_set]['train'].add(result[1][1:])
+            folder_key_to_label[data_set]['train'][result[1][1:]] = result[3]
 
         test_lines = open(f'{PATH}/raw/{data_set}/test.txt').readlines()
         for line in test_lines:
             result = re.search('(.*) (\w+) (\d+)', line)
             folder_to_keys[data_set]['test'].add(result[1][1:])
+            folder_key_to_label[data_set]['test'][result[1][1:]] = result[3]
 
     pickle.dump(folder_to_keys, open(f'{PATH}/folder_to_keys.pickle', 'wb'))
+    pickle.dump(folder_key_to_label, open(
+        f'{PATH}/folder_key_to_label.pickle', 'wb'))

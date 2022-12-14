@@ -5,3 +5,14 @@ Number of test:  416438
 Starting Training
 	[GPU 0] Epoch 1
 	[GPU 0] Epoch 2
+	[GPU 0] Epoch 3
+	[GPU 0] Epoch 4
+	[GPU 0] Epoch 5
+	[GPU 0] Epoch 6
+	[GPU 0] Epoch 7
+	[GPU 0] Epoch 8
+	[GPU 0] Epoch 9
+	[GPU 0] Epoch 10
+	Model Saved at Epoch 10
+Finished Training
+Time to run 10 epochs: 1:11:38.314027 (HH:MM:SS)
