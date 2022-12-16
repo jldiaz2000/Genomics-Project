@@ -1,0 +1,126 @@
+Fetching Data
+Starting Training
+	[GPU 0] Epoch 1
+	[GPU 0] Epoch 2
+	[GPU 0] Epoch 3
+	[GPU 0] Epoch 4
+	[GPU 0] Epoch 5
+	[GPU 0] Epoch 6
+	[GPU 0] Epoch 7
+	[GPU 0] Epoch 8
+	[GPU 0] Epoch 9
+	[GPU 0] Epoch 10
+	Model Saved at Epoch 10
+	[GPU 0] Epoch 11
+	[GPU 0] Epoch 12
+	[GPU 0] Epoch 13
+	[GPU 0] Epoch 14
+	[GPU 0] Epoch 15
+	[GPU 0] Epoch 16
+	[GPU 0] Epoch 17
+	[GPU 0] Epoch 18
+	[GPU 0] Epoch 19
+	[GPU 0] Epoch 20
+	Model Saved at Epoch 20
+	[GPU 0] Epoch 21
+	[GPU 0] Epoch 22
+	[GPU 0] Epoch 23
+	[GPU 0] Epoch 24
+	[GPU 0] Epoch 25
+	[GPU 0] Epoch 26
+	[GPU 0] Epoch 27
+	[GPU 0] Epoch 28
+	[GPU 0] Epoch 29
+	[GPU 0] Epoch 30
+	Model Saved at Epoch 30
+	[GPU 0] Epoch 31
+	[GPU 0] Epoch 32
+	[GPU 0] Epoch 33
+	[GPU 0] Epoch 34
+	[GPU 0] Epoch 35
+	[GPU 0] Epoch 36
+	[GPU 0] Epoch 37
+	[GPU 0] Epoch 38
+	[GPU 0] Epoch 39
+	[GPU 0] Epoch 40
+	Model Saved at Epoch 40
+	[GPU 0] Epoch 41
+	[GPU 0] Epoch 42
+	[GPU 0] Epoch 43
+	[GPU 0] Epoch 44
+	[GPU 0] Epoch 45
+	[GPU 0] Epoch 46
+	[GPU 0] Epoch 47
+	[GPU 0] Epoch 48
+	[GPU 0] Epoch 49
+	[GPU 0] Epoch 50
+	Model Saved at Epoch 50
+	[GPU 0] Epoch 51
+	[GPU 0] Epoch 52
+	[GPU 0] Epoch 53
+	[GPU 0] Epoch 54
+	[GPU 0] Epoch 55
+	[GPU 0] Epoch 56
+	[GPU 0] Epoch 57
+	[GPU 0] Epoch 58
+	[GPU 0] Epoch 59
+	[GPU 0] Epoch 60
+	Model Saved at Epoch 60
+	[GPU 0] Epoch 61
+	[GPU 0] Epoch 62
+	[GPU 0] Epoch 63
+	[GPU 0] Epoch 64
+	[GPU 0] Epoch 65
+	[GPU 0] Epoch 66
+	[GPU 0] Epoch 67
+	[GPU 0] Epoch 68
+	[GPU 0] Epoch 69
+	[GPU 0] Epoch 70
+	Model Saved at Epoch 70
+	[GPU 0] Epoch 71
+	[GPU 0] Epoch 72
+	[GPU 0] Epoch 73
+	[GPU 0] Epoch 74
+	[GPU 0] Epoch 75
+	[GPU 0] Epoch 76
+	[GPU 0] Epoch 77
+	[GPU 0] Epoch 78
+	[GPU 0] Epoch 79
+	[GPU 0] Epoch 80
+	Model Saved at Epoch 80
+	[GPU 0] Epoch 81
+	[GPU 0] Epoch 82
+	[GPU 0] Epoch 83
+	[GPU 0] Epoch 84
+	[GPU 0] Epoch 85
+	[GPU 0] Epoch 86
+	[GPU 0] Epoch 87
+	[GPU 0] Epoch 88
+	[GPU 0] Epoch 89
+	[GPU 0] Epoch 90
+	Model Saved at Epoch 90
+	[GPU 0] Epoch 91
+	[GPU 0] Epoch 92
+	[GPU 0] Epoch 93
+	[GPU 0] Epoch 94
+	[GPU 0] Epoch 95
+	[GPU 0] Epoch 96
+	[GPU 0] Epoch 97
+	[GPU 0] Epoch 98
+	[GPU 0] Epoch 99
+	[GPU 0] Epoch 100
+	Model Saved at Epoch 100
+	Train:
+		Loss: 0.33887630701065063 = 2205.068115234375/6507
+		Accuracy: 0.8511106708451905 = 1417661/1665660
+		ROC AUC: 0.9280917361803647 
+
+	Test:
+		Loss: 0.35747307538986206 = 581.6087036132812/1627
+		Accuracy: 0.8416474961458849 = 350494/416438
+		ROC AUC: 0.9202754517999069 
+
+Finished Training
+Time to Generate Dataset 100 epochs: 0:00:08.534069 (HH:MM:SS)
+Time to Train 100 epochs: 3:25:12.980616 (HH:MM:SS)
+load_time: 0

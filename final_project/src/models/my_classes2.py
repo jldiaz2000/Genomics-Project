@@ -10,6 +10,7 @@ from pathlib import Path
 import time
 from datetime import datetime, timedelta
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 
 
 print("Fetching Data")
@@ -270,6 +271,7 @@ class Trainer():
         ################################
         gpu_id: int,
         save_interval: int,
+        metric_interval: int,
         train_data: DataLoader,
         validation_data: DataLoader = None,
         test_data: DataLoader = None
@@ -282,6 +284,7 @@ class Trainer():
         ################################
         self.gpu_id = gpu_id
         self.save_interval = save_interval
+        self.metric_interval = metric_interval
         self.validation_data = validation_data
         self.test_data = test_data
 
@@ -297,14 +300,14 @@ class Trainer():
     def _run_epoch(self, epoch):
         # TODO: Switch prints with tqdm prints
         print(f'\t[GPU {self.gpu_id}] Epoch {epoch}')
-        i = 1
-        global load_time
-        s = time.time()
+        # i = 1
+        # global load_time
+        # s = time.time()
         for batch_data, batch_labels in self.train_data:
-            load_time += time.time() - s
+            # load_time += time.time() - s
             # TODO: make getting reformatted kmer tensor more efficent
-            print(f'{i}/{len(self.train_data)}')
-            i += 1
+            # print(f'{i}/{len(self.train_data)}')
+            # i += 1
             # batch_tensor = DNADataset.get_tensor(
             #     batch_data, self.model.kmer_to_idx, self.model.k)
             # batch_tensor = batch_tensor.to(self.gpu_id)
@@ -315,7 +318,7 @@ class Trainer():
             self._run_batch(batch_tensor, batch_labels)
             # print("Done Batch")
             # assert False
-            s = time.time()
+            # s = time.time()
 
     def _save_checkpoint(self, epoch: int):
         checkpoint = self.model.state_dict()
@@ -325,14 +328,17 @@ class Trainer():
     def train(self, num_epochs: int):
         for epoch in range(1, num_epochs + 1):
             self._run_epoch(epoch)
-            if self.save_interval > 0 and epoch % self.self.save_interval == 0:
+            if self.save_interval > 0 and epoch % self.save_interval == 0:
                 self._save_checkpoint(epoch)
             elif epoch == num_epochs:
                 self._save_checkpoint(epoch)
 
-        if self.validation_data != None:
-            self.evaluate(self.train_data)
-            self.evaluate(self.validation_data)
+            if self.metric_interval > 0 and epoch % self.metric_interval == 0:
+                print("\tTrain:")
+                self.evaluate(self.train_data)
+                if self.validation_data != None:
+                    print("\tTest:")
+                    self.evaluate(self.validation_data)
 
     def evaluate(self, dataloader):
         with torch.no_grad():
@@ -341,6 +347,8 @@ class Trainer():
             num_correct = 0
             total = 0
             num_batches = len(dataloader)
+            all_preds = []
+            all_labels = []
 
             for batch_data, batch_labels in dataloader:
                 # batch_tensor = DNADataset.get_tensor(
@@ -352,6 +360,9 @@ class Trainer():
                 batch_labels = batch_labels.to(self.gpu_id)
                 predicted_output = self.model(batch_tensor)
 
+                all_labels += batch_labels.cpu().tolist()
+                all_preds += predicted_output.cpu().tolist()
+
                 cumulative_loss += self.loss_fn(predicted_output, batch_labels)
                 # assuming decision boundary to be 0.5
                 total += batch_labels.size(0)
@@ -360,8 +371,12 @@ class Trainer():
 
             loss = cumulative_loss/num_batches
             accuracy = num_correct/total
-            print(f'\tLoss: {loss} = {cumulative_loss}/{num_batches}')
-            print(f'\tAccuracy: {accuracy} = {num_correct}/{total}')
+
+            # all_labels = list(map(lambda x: int(x), all_labels))
+            curr_roc_score = roc_auc_score(all_labels, all_preds)
+            print(f'\t\tLoss: {loss} = {cumulative_loss}/{num_batches}')
+            print(f'\t\tAccuracy: {accuracy} = {num_correct}/{total}')
+            print(f'\t\tROC AUC: {curr_roc_score} ')
             print()
 
         self.model.train()
@@ -436,60 +451,75 @@ def get_folders_sequential():
     return list(df['ID'])
 
 
-def main(device):
+def make_train_test(B, random: bool):
 
-    # folders = list(folder_to_keys.keys())
-    # folders_using = folders[1:2]
-    # folders_using = ['wgEncodeAwgTfbsBroadGm12878CtcfUniPk']
+    if random:
+        folders = get_folders_random()
+    else:
+        folders = get_folders_sequential()
 
-    folders_using = get_folders_sequential()
-    print(folders_using)
-    get_num_train_test(folders_using)
-
-    s1 = datetime.now()
-    ################## Training Generator ##################
     train_set_lst = []
-    i = 1
-    num_folders = len(folders_using)
-    print('Making Train Datasets:')
-    for folder in folders_using:
-        print(f'\t{i}/{num_folders}')
-        i += 1
+    for folder in folders:
         # train_set_lst.append(DNADataset(folder, 'train'))
         train_set_lst.append(DNADataset2(folder, 'train'))
 
     training_sets = torch.utils.data.ConcatDataset(train_set_lst)
-    training_generator = torch.utils.data.DataLoader(
-        training_sets, batch_size=256)
-    #######################################################
+    training_generator = torch.utils.data.DataLoader(training_sets,
+                                                     batch_size=B,
+                                                     shuffle=True)
 
-    ################### Test Generator ##################
     test_set_lst = []
-    i = 1
-    print('Making Test Datasets:')
-    for folder in folders_using:
-        print(f'{i}/{num_folders}')
-        i += 1
+    for folder in folders:
         # test_set_lst.append(DNADataset(folder, 'test'))
         test_set_lst.append(DNADataset2(folder, 'test'))
 
     test_sets = torch.utils.data.ConcatDataset(test_set_lst)
-    test_generator = torch.utils.data.DataLoader(test_sets, batch_size=64)
+    test_generator = torch.utils.data.DataLoader(test_sets,
+                                                 batch_size=B,
+                                                 shuffle=True)
+
+    pickle.dump(training_generator, open(
+        f'{PATH}/data/training_generator.pt', 'wb'))
+    pickle.dump(test_generator, open(f'{PATH}/data/test_generator.pt', 'wb'))
+
+
+def load_train_test():
+
+    training_generator = pickle.load(
+        open(f'{PATH}/data/training_generator.pt', 'rb'))
+    test_generator = pickle.load(open(f'{PATH}/data/test_generator.pt', 'rb'))
+
+    return training_generator, test_generator
+
+
+def main(device):
+
+    # folders_using = ['wgEncodeAwgTfbsBroadGm12878CtcfUniPk']
+
+    s1 = datetime.now()
+    ################## Training Generator ##################
+    ################### Test Generator ##################
+    ## make_train_test(B=256, random=False)
+
+    # assert False
+
+    training_generator, test_generator = load_train_test()
     ######################################################
     f1 = datetime.now()
 
     paper_model = PaperModel(k=3, output_dim=16, hidden_dim=16)
     adam_optimizer = torch.optim.Adam(paper_model.parameters(), lr=0.001)
     ce_loss = torch.nn.BCELoss(reduction='mean')
-    save_interval = 0
+    save_interval = 10
+    metric_interval = 10
 
     trainer = Trainer(paper_model, adam_optimizer, ce_loss, device,
-                      save_interval, training_generator)  # , test_generator)
+                      save_interval, metric_interval, training_generator, test_generator)
 
     # assert False
     s2 = datetime.now()
     print('Starting Training')
-    num_epochs = 1
+    num_epochs = 100
     trainer.train(num_epochs)
     print('Finished Training')
     f2 = datetime.now()

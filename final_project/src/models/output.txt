@@ -1,18 +1,9 @@
 Fetching Data
-['wgEncodeAwgTfbsHaibA549Atf3V0422111Etoh02UniPk', 'wgEncodeAwgTfbsHaibA549Bcl3V0422111Etoh02UniPk', 'wgEncodeAwgTfbsHaibA549Creb1sc240V0416102Dex100nmUniPk', 'wgEncodeAwgTfbsHaibA549Ctcfsc5916Pcr1xDex100nmUniPk', 'wgEncodeAwgTfbsHaibA549Ctcfsc5916Pcr1xEtoh02UniPk', 'wgEncodeAwgTfbsHaibA549Elf1V0422111Etoh02UniPk', 'wgEncodeAwgTfbsHaibA549Ets1V0422111Etoh02UniPk', 'wgEncodeAwgTfbsHaibA549Fosl2V0422111Etoh02UniPk', 'wgEncodeAwgTfbsHaibA549Foxa1V0416102Dex100nmUniPk', 'wgEncodeAwgTfbsHaibA549GabpV0422111Etoh02UniPk', 'wgEncodeAwgTfbsBroadGm12878CtcfUniPk', 'wgEncodeAwgTfbsBroadGm12878Ezh239875UniPk', 'wgEncodeAwgTfbsHaibGm12878Atf2sc81188V0422111UniPk', 'wgEncodeAwgTfbsHaibGm12878BatfPcr1xUniPk', 'wgEncodeAwgTfbsHaibGm12878Bcl11aPcr1xUniPk', 'wgEncodeAwgTfbsHaibGm12878Bcl3V0416101UniPk', 'wgEncodeAwgTfbsHaibGm12878Bclaf101388V0416101UniPk', 'wgEncodeAwgTfbsHaibGm12878Ebf1sc137065Pcr1xUniPk', 'wgEncodeAwgTfbsHaibGm12878Egr1Pcr2xUniPk', 'wgEncodeAwgTfbsHaibGm12878Elf1sc631V0416101UniPk', 'wgEncodeAwgTfbsBroadHepg2CtcfUniPk', 'wgEncodeAwgTfbsHaibHepg2Atf3V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Bhlhe40V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Cebpbsc150V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Cebpdsc636V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Ctcfsc5916V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Elf1sc631V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Fosl2V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Foxa1sc101058V0416101UniPk', 'wgEncodeAwgTfbsHaibHepg2Foxa1sc6553V0416101UniPk', 'wgEncodeAwgTfbsBroadH1hescChd1a301218aUniPk', 'wgEncodeAwgTfbsBroadH1hescCtcfUniPk', 'wgEncodeAwgTfbsBroadH1hescEzh239875UniPk', 'wgEncodeAwgTfbsBroadH1hescJarid1aab26049UniPk', 'wgEncodeAwgTfbsBroadH1hescRbbp5a300109aUniPk', 'wgEncodeAwgTfbsHaibH1hescAtf2sc81188V0422111UniPk', 'wgEncodeAwgTfbsHaibH1hescAtf3V0416102UniPk', 'wgEncodeAwgTfbsHaibH1hescBcl11aPcr1xUniPk', 'wgEncodeAwgTfbsHaibH1hescCtcfsc5916V0416102UniPk', 'wgEncodeAwgTfbsHaibH1hescEgr1V0416102UniPk', 'wgEncodeAwgTfbsBroadHelas3CtcfUniPk', 'wgEncodeAwgTfbsHaibHelas3GabpPcr1xUniPk', 'wgEncodeAwgTfbsHaibHelas3NrsfPcr1xUniPk', 'wgEncodeAwgTfbsHaibHelas3Pol2Pcr1xUniPk', 'wgEncodeAwgTfbsHaibHelas3Taf1Pcr1xUniPk', 'wgEncodeAwgTfbsSydhHelas3Ap2alphaUniPk', 'wgEncodeAwgTfbsSydhHelas3Ap2gammaUniPk', 'wgEncodeAwgTfbsSydhHelas3Brca1a300IggrabUniPk', 'wgEncodeAwgTfbsSydhHelas3CebpbIggrabUniPk', 'wgEncodeAwgTfbsSydhHelas3CfosUniPk']
-Number of train:  1665660
-Number of test:  416438
-Starting Training
-	[GPU 0] Epoch 1
-	[GPU 0] Epoch 2
-	[GPU 0] Epoch 3
-	[GPU 0] Epoch 4
-	[GPU 0] Epoch 5
-	[GPU 0] Epoch 6
-	[GPU 0] Epoch 7
-	[GPU 0] Epoch 8
-	[GPU 0] Epoch 9
-	[GPU 0] Epoch 10
-	Model Saved at Epoch 10
-Finished Training
-Time to run 10 epochs: 1:11:38.314027 (HH:MM:SS)
+Traceback (most recent call last):
+  File "my_classes2.py", line 518, in <module>
+    main(device)
+  File "my_classes2.py", line 489, in main
+    training_generator, test_generator = load_train_test()
+  File "my_classes2.py", line 473, in load_train_test
+    training_generator = pickle.load(open(
+io.UnsupportedOperation: read
