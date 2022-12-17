@@ -24,7 +24,7 @@ python3 get_summary_dicts.py
 python3 preprocess.py
 ```
 
-This scrapes all the datasets we use from 'http://cnn.csail.mit.edu/motif_discovery/', 
+This scrapes all the datasets we use from http://cnn.csail.mit.edu/motif_discovery/, 
 generates data structures for faster training, and preprocesses the data for 
 faster training.
 
