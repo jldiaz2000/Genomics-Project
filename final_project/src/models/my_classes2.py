@@ -25,7 +25,7 @@ backward_time = 0
 load_time = 0
 
 
-class DNADataset2(torch.utils.data.Dataset):
+class DNADataset(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
 
     def __init__(self, folder, set_type):
@@ -62,61 +62,6 @@ class DNADataset2(torch.utils.data.Dataset):
             list_IDs.append(scan)
 
         return list_IDs, key_to_tensor
-
-    @staticmethod
-    def get_k_mer_embedding(k, path):
-        # path is path ending in /src/features/name-of-txt
-        k_mer_embedding = dict()
-        with open(path) as f:
-            for line in f:
-                result = re.search('(\w*)(( (-?\d*\.?\d*))*)', line)
-                curr_key = result[1]
-                if len(result[1]) == k:
-                    vector = result[2].split(' ')
-                    vector = list(map(lambda x: float(x), vector[1:]))
-                    k_mer_embedding[curr_key] = np.array(vector)
-
-        idx_to_kmer = list(k_mer_embedding.keys())
-        kmer_to_idx = dict(zip(idx_to_kmer, np.arange(4**k)))
-        embedding = np.array(list(k_mer_embedding.values()))
-
-        assert (4**k == len(kmer_to_idx))
-        assert (embedding.shape[0] == 4**k)
-        return kmer_to_idx, embedding, idx_to_kmer
-
-    @staticmethod
-    def seq_to_tensor(sequence, kmer_to_idx, k):
-        lst = []
-        kmers = np.lib.stride_tricks.sliding_window_view(sequence, k)
-        for i in range(len(kmers)):
-            kmer_lst = kmers[i]
-            kmer = f'{kmer_lst[0]}{kmer_lst[1]}{kmer_lst[2]}'
-            kmer_idx = kmer_to_idx[kmer]
-            lst.append(kmer_idx)
-
-        return np.array(lst)
-
-
-class DNADataset(torch.utils.data.Dataset):
-    'Characterizes a dataset for PyTorch'
-
-    def __init__(self, folder, set_type):
-        'Initialization'
-        self.folder = folder
-        self.set_type = set_type  # Either 'train' or 'test'
-        self.list_IDs = list(folder_to_keys[folder][set_type])
-
-    def __len__(self):
-        'Denotes the total number of samples'
-        return len(self.list_IDs)
-
-    def __getitem__(self, index):
-        'Generates one sample of data'
-        key = self.list_IDs[index]
-        X = pickle.load(
-            open(f'{PATH}/data/preprocessed/{self.folder}/{self.set_type}/{key}.pt', 'rb'))
-        y = folder_key_to_label[self.folder][self.set_type][key]
-        return X, y
 
     @staticmethod
     def get_k_mer_embedding(k, path):
@@ -298,27 +243,13 @@ class Trainer():
         self.optimizer.step()
 
     def _run_epoch(self, epoch):
-        # TODO: Switch prints with tqdm prints
         print(f'\t[GPU {self.gpu_id}] Epoch {epoch}')
-        # i = 1
-        # global load_time
-        # s = time.time()
         for batch_data, batch_labels in self.train_data:
-            # load_time += time.time() - s
-            # TODO: make getting reformatted kmer tensor more efficent
-            # print(f'{i}/{len(self.train_data)}')
-            # i += 1
-            # batch_tensor = DNADataset.get_tensor(
-            #     batch_data, self.model.kmer_to_idx, self.model.k)
-            # batch_tensor = batch_tensor.to(self.gpu_id)
             batch_tensor = batch_data.to(self.gpu_id)
             batch_labels = torch.tensor(
                 (np.array(batch_labels)).astype(np.float32))
             batch_labels = batch_labels.to(self.gpu_id)
             self._run_batch(batch_tensor, batch_labels)
-            # print("Done Batch")
-            # assert False
-            # s = time.time()
 
     def _save_checkpoint(self, epoch: int):
         checkpoint = self.model.state_dict()
@@ -351,9 +282,6 @@ class Trainer():
             all_labels = []
 
             for batch_data, batch_labels in dataloader:
-                # batch_tensor = DNADataset.get_tensor(
-                #     batch_data, self.model.kmer_to_idx, self.model.k)
-                # batch_tensor = batch_tensor.to(self.gpu_id)
                 batch_tensor = batch_data.to(self.gpu_id)
                 batch_labels = torch.tensor(
                     (np.array(batch_labels)).astype(np.float32))
@@ -372,7 +300,6 @@ class Trainer():
             loss = cumulative_loss/num_batches
             accuracy = num_correct/total
 
-            # all_labels = list(map(lambda x: int(x), all_labels))
             curr_roc_score = roc_auc_score(all_labels, all_preds)
             print(f'\t\tLoss: {loss} = {cumulative_loss}/{num_batches}')
             print(f'\t\tAccuracy: {accuracy} = {num_correct}/{total}')
@@ -380,14 +307,6 @@ class Trainer():
             print()
 
         self.model.train()
-
-    def test(self):
-        # TODO: Create function almost identical to validate above
-        pass
-
-    def get_AUC_ROC(self):
-        # TODO: Create function to generate AUC_ROC curve
-        pass
 
 
 def get_num_train_test(folders_using: list):
@@ -460,8 +379,7 @@ def make_train_test(B, random: bool):
 
     train_set_lst = []
     for folder in folders:
-        # train_set_lst.append(DNADataset(folder, 'train'))
-        train_set_lst.append(DNADataset2(folder, 'train'))
+        train_set_lst.append(DNADataset(folder, 'train'))
 
     training_sets = torch.utils.data.ConcatDataset(train_set_lst)
     training_generator = torch.utils.data.DataLoader(training_sets,
@@ -470,8 +388,7 @@ def make_train_test(B, random: bool):
 
     test_set_lst = []
     for folder in folders:
-        # test_set_lst.append(DNADataset(folder, 'test'))
-        test_set_lst.append(DNADataset2(folder, 'test'))
+        test_set_lst.append(DNADataset(folder, 'test'))
 
     test_sets = torch.utils.data.ConcatDataset(test_set_lst)
     test_generator = torch.utils.data.DataLoader(test_sets,
@@ -533,4 +450,8 @@ def main(device):
 if __name__ == "__main__":
     import sys
     device = 0
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
     main(device)
