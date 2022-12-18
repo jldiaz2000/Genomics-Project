@@ -1,9 +1,0 @@
-Fetching Data
-Traceback (most recent call last):
-  File "my_classes2.py", line 518, in <module>
-    main(device)
-  File "my_classes2.py", line 489, in main
-    training_generator, test_generator = load_train_test()
-  File "my_classes2.py", line 473, in load_train_test
-    training_generator = pickle.load(open(
-io.UnsupportedOperation: read

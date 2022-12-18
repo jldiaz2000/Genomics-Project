@@ -10,22 +10,36 @@ from pathlib import Path
 import time
 from datetime import datetime, timedelta
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 
 
 print("Fetching Data")
 PATH = Path(os.getcwd())
 PATH = PATH.parent.parent
-folder_to_keys = pickle.load(open(f'{PATH}/data/folder_to_keys.pickle', 'rb'))
+try:
+    folder_to_keys = pickle.load(
+        open(f'{PATH}/data/folder_to_keys.pickle', 'rb'))
+    folder_key_to_label = pickle.load(
+        open(f'{PATH}/data/folder_key_to_label.pickle', 'rb'))
+except:
+    print("Could not find folder_to_keys or folder_key_to_label")
+    pass
+
+small_folder_to_keys = pickle.load(
+    open(f'{PATH}/data/small_folder_to_keys.pickle', 'rb'))
+small_folder_key_to_label = pickle.load(
+    open(f'{PATH}/data/small_folder_key_to_label.pickle', 'rb'))
 
 
 class DNADataset(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
 
-    def __init__(self, folder, set_type):
+    def __init__(self, folder, set_type, is_small):
         'Initialization'
         self.folder = folder
         self.set_type = set_type  # Either 'train' or 'test'
-        self.list_IDs = list(folder_to_keys[folder][set_type])
+        self.list_IDs, self.key_to_tensor = self.get_tensor_dict()
+        self.is_small = is_small
 
     def __len__(self):
         'Denotes the total number of samples'
@@ -33,13 +47,28 @@ class DNADataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         'Generates one sample of data'
-        line = linecache.getline(
-            f'{str(PATH)}/data/raw/{self.folder}/{self.set_type}.txt', index+1)
-        result = re.search('(.*) (\w+) (\d+)', line)
-        key = result[1]
-        X = list(result[2])
-        y = result[3]
+        key = self.list_IDs[index]
+        X = self.key_to_tensor[key]
+        if self.is_small:
+            y = small_folder_key_to_label[self.folder][self.set_type][key[:-3]]
+        else:
+            y = folder_key_to_label[self.folder][self.set_type][key[:-3]]
+
         return X, y
+
+    def get_tensor_dict(self):
+        curr_path = f'{PATH}/data/preprocessed/{self.folder}/{self.set_type}'
+        scans = set(os.listdir(curr_path)) - set(['.DS_Store'])
+        list_IDs = []
+        key_to_tensor = dict()
+        for scan in scans:
+            X = pickle.load(
+                open(f'{PATH}/data/preprocessed/{self.folder}/{self.set_type}/{scan}', 'rb'))
+            key_to_tensor[scan] = X
+
+            list_IDs.append(scan)
+
+        return list_IDs, key_to_tensor
 
     @staticmethod
     def get_k_mer_embedding(k, path):
@@ -73,16 +102,6 @@ class DNADataset(torch.utils.data.Dataset):
             lst.append(kmer_idx)
 
         return np.array(lst)
-
-    @staticmethod
-    # Converts input data to a tensor with B tensors containing a DNA sequences
-    # k-mer indices on the embedding matrix
-    #
-    # input data type: torch.tensor(torch.tensor([torch.float()])) shape (101,B)
-    def get_tensor(input_data, kmer_to_idx, k):
-        matrix = np.array(input_data).T
-    #     assert matrix.shape == (_,101), f'matrix.shape {matrix.shape} != (_,101)'
-        return torch.tensor(np.apply_along_axis(DNADataset.seq_to_tensor, 1, matrix, kmer_to_idx=kmer_to_idx, k=k))
 
 
 def PaperEmbedding(k):
@@ -204,6 +223,7 @@ class Trainer():
         ################################
         gpu_id: int,
         save_interval: int,
+        metric_interval: int,
         train_data: DataLoader,
         validation_data: DataLoader = None,
         test_data: DataLoader = None
@@ -216,27 +236,23 @@ class Trainer():
         ################################
         self.gpu_id = gpu_id
         self.save_interval = save_interval
+        self.metric_interval = metric_interval
         self.validation_data = validation_data
         self.test_data = test_data
 
     def _run_batch(self, batch_tensor, batch_labels):
         self.optimizer.zero_grad()
+
         predicted_output = self.model(batch_tensor)
+
         loss = self.loss_fn(predicted_output, batch_labels)
         loss.backward()
         self.optimizer.step()
 
     def _run_epoch(self, epoch):
-        # TODO: Switch prints with tqdm prints
         print(f'\t[GPU {self.gpu_id}] Epoch {epoch}')
-        # i = 1
         for batch_data, batch_labels in self.train_data:
-            # TODO: make getting reformatted kmer tensor more efficent
-            # print(f'{i}/{len(self.train_data)}')
-            # i += 1
-            batch_tensor = DNADataset.get_tensor(
-                batch_data, self.model.kmer_to_idx, self.model.k)
-            batch_tensor = batch_tensor.to(self.gpu_id)
+            batch_tensor = batch_data.to(self.gpu_id)
             batch_labels = torch.tensor(
                 (np.array(batch_labels)).astype(np.float32))
             batch_labels = batch_labels.to(self.gpu_id)
@@ -250,14 +266,17 @@ class Trainer():
     def train(self, num_epochs: int):
         for epoch in range(1, num_epochs + 1):
             self._run_epoch(epoch)
-            if self.save_interval > 0 and epoch % self.self.save_interval == 0:
+            if self.save_interval > 0 and epoch % self.save_interval == 0:
                 self._save_checkpoint(epoch)
             elif epoch == num_epochs:
                 self._save_checkpoint(epoch)
 
-        if self.validation_data != None:
-            self.evaluate(self.train_data)
-            self.evaluate(self.validation_data)
+            if self.metric_interval > 0 and epoch % self.metric_interval == 0:
+                print("\tTrain:")
+                self.evaluate(self.train_data)
+                if self.validation_data != None:
+                    print("\tTest:")
+                    self.evaluate(self.validation_data)
 
     def evaluate(self, dataloader):
         with torch.no_grad():
@@ -266,15 +285,18 @@ class Trainer():
             num_correct = 0
             total = 0
             num_batches = len(dataloader)
+            all_preds = []
+            all_labels = []
 
             for batch_data, batch_labels in dataloader:
-                batch_tensor = DNADataset.get_tensor(
-                    batch_data, self.model.kmer_to_idx, self.model.k)
-                batch_tensor = batch_tensor.to(self.gpu_id)
+                batch_tensor = batch_data.to(self.gpu_id)
                 batch_labels = torch.tensor(
                     (np.array(batch_labels)).astype(np.float32))
                 batch_labels = batch_labels.to(self.gpu_id)
                 predicted_output = self.model(batch_tensor)
+
+                all_labels += batch_labels.cpu().tolist()
+                all_preds += predicted_output.cpu().tolist()
 
                 cumulative_loss += self.loss_fn(predicted_output, batch_labels)
                 # assuming decision boundary to be 0.5
@@ -284,19 +306,14 @@ class Trainer():
 
             loss = cumulative_loss/num_batches
             accuracy = num_correct/total
-            print(f'\tLoss: {loss} = {cumulative_loss}/{num_batches}')
-            print(f'\tAccuracy: {accuracy} = {num_correct}/{total}')
+
+            curr_roc_score = roc_auc_score(all_labels, all_preds)
+            print(f'\t\tLoss: {loss} = {cumulative_loss}/{num_batches}')
+            print(f'\t\tAccuracy: {accuracy} = {num_correct}/{total}')
+            print(f'\t\tROC AUC: {curr_roc_score} ')
             print()
 
         self.model.train()
-
-    def test(self):
-        # TODO: Create function almost identical to validate above
-        pass
-
-    def get_AUC_ROC(self):
-        # TODO: Create function to generate AUC_ROC curve
-        pass
 
 
 def get_num_train_test(folders_using: list):
@@ -313,6 +330,19 @@ def get_num_train_test(folders_using: list):
 def get_folders_random():
     df = pd.read_csv(f'{PATH}/data/summary.csv')
     df = df[df['quality'] == 'good']
+
+    removable = ['wgEncodeAwgTfbsUtaHelas3CtcfUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Rad21IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Mafkab50322IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHelas3Pol2UniPk',
+                 'wgEncodeAwgTfbsSydhH1hescSuz12UcdUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Pol2IggmusUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Ebf1sc137065UniPk',
+                 'wgEncodeAwgTfbsHaibHepg2Sin3ak20Pcr1xUniPk',
+                 'wgEncodeAwgTfbsHaibA549Pol2Pcr2xEtoh02UniPk']
+
+    df = df[~df['ID'].isin(removable)]
+
     df = df[df['cell'].isin(
         {'A549', 'GM12878', 'HepG2', 'H1-hESC', 'HeLa-S3'})].sample(50)
     return list(df['ID'])
@@ -322,6 +352,18 @@ def get_folders_sequential():
     df = pd.read_csv(f'{PATH}/data/summary.csv')
     df = df[df['quality'] == 'good']
 
+    removable = ['wgEncodeAwgTfbsUtaHelas3CtcfUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Rad21IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Mafkab50322IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHelas3Pol2UniPk',
+                 'wgEncodeAwgTfbsSydhH1hescSuz12UcdUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Pol2IggmusUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Ebf1sc137065UniPk',
+                 'wgEncodeAwgTfbsHaibHepg2Sin3ak20Pcr1xUniPk',
+                 'wgEncodeAwgTfbsHaibA549Pol2Pcr2xEtoh02UniPk']
+
+    df = df[~df['ID'].isin(removable)]
+
     A549_df = df[df['cell'] == 'A549'].head(10)
     GM12878_df = df[df['cell'] == 'GM12878'].head(10)
     HepG2_df = df[df['cell'] == 'HepG2'].head(10)
@@ -329,55 +371,114 @@ def get_folders_sequential():
     HeLa_S3_df = df[df['cell'] == 'HeLa-S3'].head(10)
     df = pd.concat([A549_df, GM12878_df, HepG2_df, H1_hESC_df,
                    HeLa_S3_df], axis=0, ignore_index=True)
+
+    assert len(list(df['ID'])) == 50
+
     return list(df['ID'])
+
+
+def get_5_sequential():
+
+    df = pd.read_csv(f'{PATH}/data/summary.csv')
+    df = df[df['quality'] == 'good']
+
+    removable = ['wgEncodeAwgTfbsUtaHelas3CtcfUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Rad21IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Mafkab50322IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHelas3Pol2UniPk',
+                 'wgEncodeAwgTfbsSydhH1hescSuz12UcdUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Pol2IggmusUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Ebf1sc137065UniPk',
+                 'wgEncodeAwgTfbsHaibHepg2Sin3ak20Pcr1xUniPk',
+                 'wgEncodeAwgTfbsHaibA549Pol2Pcr2xEtoh02UniPk']
+
+    df = df[~df['ID'].isin(removable)]
+
+    A549_df = df[df['cell'] == 'A549'].head(1)
+    GM12878_df = df[df['cell'] == 'GM12878'].head(1)
+    HepG2_df = df[df['cell'] == 'HepG2'].head(1)
+    H1_hESC_df = df[df['cell'] == 'H1-hESC'].head(1)
+    HeLa_S3_df = df[df['cell'] == 'HeLa-S3'].head(1)
+    df = pd.concat([A549_df, GM12878_df, HepG2_df, H1_hESC_df,
+                   HeLa_S3_df], axis=0, ignore_index=True)
+
+    return list(df['ID'])
+
+
+def make_train_test(B, random: bool, is_small: bool):
+
+    # folders = get_5_sequential()
+
+    if random:
+        folders = get_folders_random()
+    else:
+        folders = get_folders_sequential()
+
+    train_set_lst = []
+    for folder in folders:
+        train_set_lst.append(DNADataset(folder, 'train', is_small))
+
+    training_sets = torch.utils.data.ConcatDataset(train_set_lst)
+    training_generator = torch.utils.data.DataLoader(training_sets,
+                                                     batch_size=B,
+                                                     shuffle=True)
+
+    test_set_lst = []
+    for folder in folders:
+        test_set_lst.append(DNADataset(folder, 'test', is_small))
+
+    test_sets = torch.utils.data.ConcatDataset(test_set_lst)
+    test_generator = torch.utils.data.DataLoader(test_sets,
+                                                 batch_size=B,
+                                                 shuffle=True)
+
+    pickle.dump(training_generator, open(
+        f'{PATH}/data/training_generator.pt', 'wb'))
+    pickle.dump(test_generator, open(f'{PATH}/data/test_generator.pt', 'wb'))
+
+
+def load_train_test():
+
+    training_generator = pickle.load(
+        open(f'{PATH}/data/training_generator.pt', 'rb'))
+    test_generator = pickle.load(open(f'{PATH}/data/test_generator.pt', 'rb'))
+
+    return training_generator, test_generator
 
 
 def main(device):
 
-    # folders = list(folder_to_keys.keys())
-    # folders_using = folders[1:2]
-    folders_using = get_folders_sequential()
-    print(folders_using)
-    get_num_train_test(folders_using)
+    # Keep uncommented unless you want to remake and replace datasets
+    # use is_small = true if you want to use small dataset
+    # make_train_test(B=256, random=False, is_small=True)
 
-    ################## Training Generator ##################
-    train_set_lst = []
-    for folder in folders_using:
-        train_set_lst.append(DNADataset(folder, 'train'))
+    # Keep uncommented unless you want to remake and replace datasets
+    # make_train_test(B=256, random=False, is_small=False)
 
-    training_sets = torch.utils.data.ConcatDataset(train_set_lst)
-    training_generator = torch.utils.data.DataLoader(
-        training_sets, batch_size=256)
-    #######################################################
-
-    ################### Test Generator ##################
-    test_set_lst = []
-    for folder in folders_using:
-        test_set_lst.append(DNADataset(folder, 'test'))
-
-    test_sets = torch.utils.data.ConcatDataset(test_set_lst)
-    test_generator = torch.utils.data.DataLoader(test_sets, batch_size=64)
+    training_generator, test_generator = load_train_test()
     ######################################################
 
     paper_model = PaperModel(k=3, output_dim=16, hidden_dim=16)
     adam_optimizer = torch.optim.Adam(paper_model.parameters(), lr=0.001)
     ce_loss = torch.nn.BCELoss(reduction='mean')
-    save_interval = 0
+    save_interval = 10
+    metric_interval = 10
 
     trainer = Trainer(paper_model, adam_optimizer, ce_loss, device,
-                      save_interval, training_generator)  # , test_generator)
+                      save_interval, metric_interval, training_generator, test_generator)
 
-    # assert False
     s = datetime.now()
     print('Starting Training')
-    num_epochs = 10
+    num_epochs = 100
     trainer.train(num_epochs)
     print('Finished Training')
     f = datetime.now()
-    print(f'Time to run {num_epochs} epochs: {f-s} (HH:MM:SS)')
+    print(f'Time to Train {num_epochs} epochs: {f-s} (HH:MM:SS)')
 
 
 if __name__ == "__main__":
-    import sys
-    device = 0
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
     main(device)

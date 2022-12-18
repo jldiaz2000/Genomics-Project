@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
-from my_classes2 import PaperModel, Trainer, DNADataset
+from my_classes import PaperModel, Trainer, DNADataset
 
 PATH = Path(os.getcwd())
 PATH = PATH.parent.parent
