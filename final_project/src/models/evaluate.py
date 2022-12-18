@@ -23,12 +23,14 @@ def main(device):
     training_generator = None
 
     # Loading in small test set
+    print("Successfully loaded data")
     test_generator = pickle.load(
         open(f'{PATH}/data/small_test_generator.pt', 'rb'))
 
     paper_model = PaperModel(k=3, output_dim=16, hidden_dim=16)
 
     # Loading in Trained model
+    print("Successfully loaded model")
     paper_model.load_state_dict(torch.load(
         f'{PATH}/src/models/checkpoint_model.pt',  map_location='cpu'))
 
@@ -40,6 +42,7 @@ def main(device):
     trainer = Trainer(paper_model, adam_optimizer, ce_loss, device,
                       save_interval, metric_interval, training_generator, test_generator)
 
+    print("Running Inference")
     trainer.evaluate(test_generator)
 
 
