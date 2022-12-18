@@ -30,7 +30,7 @@ def main(device):
 
     # Loading in Trained model
     paper_model.load_state_dict(torch.load(
-        f'{PATH}/src/models/checkpoint_model.pt'))
+        f'{PATH}/src/models/checkpoint_model.pt',  map_location='cpu'))
 
     adam_optimizer = torch.optim.Adam(paper_model.parameters(), lr=0.001)
     ce_loss = torch.nn.BCELoss(reduction='mean')

@@ -459,6 +459,7 @@ def main(device):
     ######################################################
 
     paper_model = PaperModel(k=3, output_dim=16, hidden_dim=16)
+
     adam_optimizer = torch.optim.Adam(paper_model.parameters(), lr=0.001)
     ce_loss = torch.nn.BCELoss(reduction='mean')
     save_interval = 10
