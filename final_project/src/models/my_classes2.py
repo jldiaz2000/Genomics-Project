@@ -16,24 +16,30 @@ from sklearn.metrics import roc_auc_score
 print("Fetching Data")
 PATH = Path(os.getcwd())
 PATH = PATH.parent.parent
-folder_to_keys = pickle.load(open(f'{PATH}/data/folder_to_keys.pickle', 'rb'))
-folder_key_to_label = pickle.load(
-    open(f'{PATH}/data/folder_key_to_label.pickle', 'rb'))
+# try:
+#     folder_to_keys = pickle.load(
+#         open(f'{PATH}/data/folder_to_keys.pickle', 'rb'))
+#     folder_key_to_label = pickle.load(
+#         open(f'{PATH}/data/folder_key_to_label.pickle', 'rb'))
+# except:
+#     print("Could not find folder_to_keys or folder_key_to_label")
+#     pass
 
-forward_time = 0
-backward_time = 0
-load_time = 0
+small_folder_to_keys = pickle.load(
+    open(f'{PATH}/data/small_folder_to_keys.pickle', 'rb'))
+small_folder_key_to_label = pickle.load(
+    open(f'{PATH}/data/small_folder_key_to_label.pickle', 'rb'))
 
 
 class DNADataset(torch.utils.data.Dataset):
     'Characterizes a dataset for PyTorch'
 
-    def __init__(self, folder, set_type):
+    def __init__(self, folder, set_type, is_small):
         'Initialization'
         self.folder = folder
         self.set_type = set_type  # Either 'train' or 'test'
-        # self.list_IDs = list(folder_to_keys[folder][set_type])
         self.list_IDs, self.key_to_tensor = self.get_tensor_dict()
+        self.is_small = is_small
 
     def __len__(self):
         'Denotes the total number of samples'
@@ -42,11 +48,12 @@ class DNADataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         'Generates one sample of data'
         key = self.list_IDs[index]
-        # X = pickle.load(
-        #     open(f'{PATH}/data/preprocessed/{self.folder}/{self.set_type}/{key}.pt', 'rb'))
-        # y = folder_key_to_label[self.folder][self.set_type][key]
         X = self.key_to_tensor[key]
-        y = folder_key_to_label[self.folder][self.set_type][key[:-3]]
+        if self.is_small:
+            y = small_folder_key_to_label[self.folder][self.set_type][key[:-3]]
+        else:
+            y = folder_key_to_label[self.folder][self.set_type][key[:-3]]
+
         return X, y
 
     def get_tensor_dict(self):
@@ -370,7 +377,37 @@ def get_folders_sequential():
     return list(df['ID'])
 
 
-def make_train_test(B, random: bool):
+def get_5_sequential():
+
+    df = pd.read_csv(f'{PATH}/data/summary.csv')
+    df = df[df['quality'] == 'good']
+
+    removable = ['wgEncodeAwgTfbsUtaHelas3CtcfUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Rad21IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHepg2Mafkab50322IggrabUniPk',
+                 'wgEncodeAwgTfbsSydhHelas3Pol2UniPk',
+                 'wgEncodeAwgTfbsSydhH1hescSuz12UcdUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Pol2IggmusUniPk',
+                 'wgEncodeAwgTfbsSydhGm12878Ebf1sc137065UniPk',
+                 'wgEncodeAwgTfbsHaibHepg2Sin3ak20Pcr1xUniPk',
+                 'wgEncodeAwgTfbsHaibA549Pol2Pcr2xEtoh02UniPk']
+
+    df = df[~df['ID'].isin(removable)]
+
+    A549_df = df[df['cell'] == 'A549'].head(1)
+    GM12878_df = df[df['cell'] == 'GM12878'].head(1)
+    HepG2_df = df[df['cell'] == 'HepG2'].head(1)
+    H1_hESC_df = df[df['cell'] == 'H1-hESC'].head(1)
+    HeLa_S3_df = df[df['cell'] == 'HeLa-S3'].head(1)
+    df = pd.concat([A549_df, GM12878_df, HepG2_df, H1_hESC_df,
+                   HeLa_S3_df], axis=0, ignore_index=True)
+
+    return list(df['ID'])
+
+
+def make_train_test(B, random: bool, is_small: bool):
+
+    # folders = get_5_sequential()
 
     if random:
         folders = get_folders_random()
@@ -379,7 +416,7 @@ def make_train_test(B, random: bool):
 
     train_set_lst = []
     for folder in folders:
-        train_set_lst.append(DNADataset(folder, 'train'))
+        train_set_lst.append(DNADataset(folder, 'train', is_small))
 
     training_sets = torch.utils.data.ConcatDataset(train_set_lst)
     training_generator = torch.utils.data.DataLoader(training_sets,
@@ -388,16 +425,21 @@ def make_train_test(B, random: bool):
 
     test_set_lst = []
     for folder in folders:
-        test_set_lst.append(DNADataset(folder, 'test'))
+        test_set_lst.append(DNADataset(folder, 'test', is_small))
 
     test_sets = torch.utils.data.ConcatDataset(test_set_lst)
     test_generator = torch.utils.data.DataLoader(test_sets,
                                                  batch_size=B,
                                                  shuffle=True)
 
+    # pickle.dump(training_generator, open(
+    #     f'{PATH}/data/training_generator.pt', 'wb'))
+    # pickle.dump(test_generator, open(f'{PATH}/data/test_generator.pt', 'wb'))
+
     pickle.dump(training_generator, open(
-        f'{PATH}/data/training_generator.pt', 'wb'))
-    pickle.dump(test_generator, open(f'{PATH}/data/test_generator.pt', 'wb'))
+        f'{PATH}/data/small_training_generator.pt', 'wb'))
+    pickle.dump(test_generator, open(
+        f'{PATH}/data/small_test_generator.pt', 'wb'))
 
 
 def load_train_test():
@@ -410,19 +452,13 @@ def load_train_test():
 
 
 def main(device):
+    # Keep uncommented unless you want to remake and replace datasets
+    make_train_test(B=256, random=False, is_small=True)
 
-    # folders_using = ['wgEncodeAwgTfbsBroadGm12878CtcfUniPk']
-
-    s1 = datetime.now()
-    ################## Training Generator ##################
-    ################### Test Generator ##################
-    ## make_train_test(B=256, random=False)
-
-    # assert False
+    assert False
 
     training_generator, test_generator = load_train_test()
     ######################################################
-    f1 = datetime.now()
 
     paper_model = PaperModel(k=3, output_dim=16, hidden_dim=16)
     adam_optimizer = torch.optim.Adam(paper_model.parameters(), lr=0.001)
@@ -434,23 +470,18 @@ def main(device):
                       save_interval, metric_interval, training_generator, test_generator)
 
     # assert False
-    s2 = datetime.now()
+    s = datetime.now()
     print('Starting Training')
     num_epochs = 100
     trainer.train(num_epochs)
     print('Finished Training')
-    f2 = datetime.now()
-    print(f'Time to Generate Dataset {num_epochs} epochs: {f1-s1} (HH:MM:SS)')
-    print(f'Time to Train {num_epochs} epochs: {f2-s2} (HH:MM:SS)')
-
-    global load_time
-    print(f'load_time: {load_time}')
+    f = datetime.now()
+    print(f'Time to Train {num_epochs} epochs: {f-s} (HH:MM:SS)')
 
 
 if __name__ == "__main__":
-    device = 0
-    # if torch.cuda.is_available():
-    #     device = "cuda"
-    # else:
-    #     device = "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
     main(device)
