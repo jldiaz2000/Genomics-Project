@@ -16,7 +16,7 @@ accuracy and AUC ROC.
 ## Download and Preprocess Data
 
 from the ./final-project/src/data directory run. Running all of these commands 
-took appoximately 
+took appoximately 1 hour
 
 ```bash
 python3 scrape.py
