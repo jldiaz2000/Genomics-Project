@@ -2,7 +2,13 @@
 
 ## Reproducting Results
 
-From the from the ./final-project/src/models directory run
+From the from the ./Genomics-Project directory run
+
+```bash
+pip3 install -r requirements.txt
+```
+
+From the from the ./Genomics-Project/final-project/src/models directory run
 
 ```bash
 python3 evaluate.py
@@ -15,8 +21,8 @@ accuracy and AUC ROC.
 
 ## Download and Preprocess Data
 
-from the ./final-project/src/data directory run. Running all of these commands 
-took appoximately 1 hour
+from the ./Genomics-Project/final-project/src/data directory run. Running all of these commands 
+took appoximately 1 hour.
 
 ```bash
 python3 scrape.py
@@ -43,7 +49,7 @@ python3 my_classes.py
 nohup python3 -u my_classes.py > output.txt &
 ```
 
-The results of our run can be found in ./final_project/src/models/output_100_epoch.txt.
+The results of our run can be found in ./Genomics-Project/final_project/src/models/output_100_epoch.txt.
 The model parameters we use are the ones already coded in my_classes.py
 
 Hyperparameters for the model itself and parameters for calculating metrics can 

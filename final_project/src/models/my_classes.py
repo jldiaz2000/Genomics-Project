@@ -22,7 +22,6 @@ try:
     folder_key_to_label = pickle.load(
         open(f'{PATH}/data/folder_key_to_label.pickle', 'rb'))
 except:
-    print("Could not find folder_to_keys or folder_key_to_label")
     pass
 
 small_folder_to_keys = pickle.load(
