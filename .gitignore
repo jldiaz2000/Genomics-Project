@@ -1,1 +1,6 @@
-final_project/data/*
+final_project/data/preprocessed
+final_project/data/raw
+final_project/data/folder_key_to_label.pickle
+final_project/data/folder_to_keys.pickle
+final_project/data/training_generator.pt
+final_project/data/test_generator.pt
