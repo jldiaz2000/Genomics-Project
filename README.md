@@ -15,11 +15,11 @@ accuracy and AUC ROC.
 
 ## Download and Preprocess Data
 
-from the ./final-project/src/data directory run
+from the ./final-project/src/data directory run. Running all of these commands 
+took appoximately 
 
 ```bash
 python3 scrape.py
-python3 summary_to_csv.py
 python3 get_summary_dicts.py
 python3 preprocess.py
 ```
